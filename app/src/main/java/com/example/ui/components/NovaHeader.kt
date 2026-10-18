@@ -90,7 +90,7 @@ fun NovaHeader(
                         ) {
                             Image(
                                 painter = painterResource(id = R.drawable.ic_nova_logo),
-                                contentDescription = "Nova PDF Logo",
+                                contentDescription = "Nova PDF Converter Logo",
                                 modifier = Modifier
                                     .size(42.dp)
                                     .clip(RoundedCornerShape(10.dp))
@@ -113,7 +113,7 @@ fun NovaHeader(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "PDF",
+                                    text = "PDF CONVERTER",
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
