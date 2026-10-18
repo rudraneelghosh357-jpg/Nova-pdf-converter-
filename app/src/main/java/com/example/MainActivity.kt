@@ -1,11 +1,19 @@
 package com.example
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,7 +52,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,30 +63,109 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.model.ConversionResult
+import com.example.model.PdfReaderUiState
 import com.example.ui.components.ConvertButtonSection
 import com.example.ui.components.ConvertingDialog
 import com.example.ui.components.ImageGridSection
 import com.example.ui.components.NovaHeader
+import com.example.ui.components.PdfReaderScreen
 import com.example.ui.components.PdfSettingsCard
 import com.example.ui.components.ResultSection
+import com.example.ui.components.SplashScreen
 import com.example.ui.components.UploadSection
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.theme.NovaCyan
 import com.example.viewmodel.NovaPdfViewModel
 import com.example.viewmodel.UiState
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
 
     private val viewModel: NovaPdfViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Initialize AndroidX SplashScreen API
+        val splashScreen = installSplashScreen()
+
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Check for incoming intent to open PDF
+        handleIncomingPdfIntent(intent)
+
         setContent {
             MyApplicationTheme {
-                NovaPdfApp(viewModel = viewModel)
+                var isSplashActive by remember { mutableStateOf(true) }
+                val context = LocalContext.current
+                val pdfReaderState by viewModel.pdfReaderState.collectAsStateWithLifecycle()
+
+                // Splash screen 2-second timer then smooth fade-out and open pending intent if any
+                LaunchedEffect(Unit) {
+                    delay(2000L)
+                    isSplashActive = false
+                    viewModel.pendingOpenUri.value?.let { uri ->
+                        viewModel.openPdfForViewing(context, uri)
+                        viewModel.setPendingOpenUri(null)
+                    }
+                }
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                    NovaPdfApp(
+                        viewModel = viewModel,
+                        onOpenPdfRequest = { uri ->
+                            viewModel.openPdfForViewing(context, uri)
+                        }
+                    )
+
+                    // PDF Reader Fullscreen Overlay
+                    if (pdfReaderState !is PdfReaderUiState.Closed) {
+                        PdfReaderScreen(
+                            state = pdfReaderState,
+                            onClose = { viewModel.closePdfReader() }
+                        )
+                    }
+
+                    // Splash Screen Overlay with Smooth Fade Out
+                    AnimatedVisibility(
+                        visible = isSplashActive,
+                        enter = fadeIn(),
+                        exit = fadeOut(animationSpec = tween(500))
+                    ) {
+                        SplashScreen()
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIncomingPdfIntent(intent)
+    }
+
+    private fun handleIncomingPdfIntent(intent: Intent?) {
+        if (intent?.action == Intent.ACTION_VIEW) {
+            intent.data?.let { uri ->
+                if (intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0) {
+                    try {
+                        contentResolver.takePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                    } catch (_: Exception) {
+                        // Not all content URIs support persistable permissions
+                    }
+                }
+                viewModel.setPendingOpenUri(uri)
+                // If app is already running past splash screen, open immediately
+                if (viewModel.pdfReaderState.value is PdfReaderUiState.Closed) {
+                    viewModel.openPdfForViewing(this, uri)
+                    viewModel.setPendingOpenUri(null)
+                }
             }
         }
     }
@@ -85,6 +174,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun NovaPdfApp(
     viewModel: NovaPdfViewModel,
+    onOpenPdfRequest: (Uri) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -92,6 +182,15 @@ fun NovaPdfApp(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // PDF file picker launcher for "Open PDF" button
+    val openPdfPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let {
+            onOpenPdfRequest(it)
+        }
+    }
 
     // Auto-seed sample photos to MediaStore so the system Photo Picker shows device photos
     LaunchedEffect(Unit) {
@@ -109,7 +208,13 @@ fun NovaPdfApp(
             .testTag("nova_pdf_main_scaffold"),
         contentWindowInsets = WindowInsets.safeDrawing,
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = { NovaHeader() }
+        topBar = {
+            NovaHeader(
+                onOpenPdfClick = {
+                    openPdfPickerLauncher.launch(arrayOf("application/pdf"))
+                }
+            )
+        }
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -135,12 +240,15 @@ fun NovaPdfApp(
                         }
                     }
                     else -> {
-                        // 1. Upload & Camera selection with Sample Images support
+                        // 1. Upload, Camera, and Open PDF selection
                         item {
                             UploadSection(
                                 onImagesSelected = { uris -> viewModel.addImages(context, uris) },
                                 onSingleImageCaptured = { uri -> viewModel.addSingleImage(context, uri) },
-                                onLoadSampleImages = { viewModel.loadSampleImages(context) }
+                                onLoadSampleImages = { viewModel.loadSampleImages(context) },
+                                onOpenPdf = {
+                                    openPdfPickerLauncher.launch(arrayOf("application/pdf"))
+                                }
                             )
                         }
 
@@ -181,7 +289,10 @@ fun NovaPdfApp(
                             // Empty State / Feature Highlights
                             item {
                                 EmptyStateGuide(
-                                    onLoadSampleImages = { viewModel.loadSampleImages(context) }
+                                    onLoadSampleImages = { viewModel.loadSampleImages(context) },
+                                    onOpenPdf = {
+                                        openPdfPickerLauncher.launch(arrayOf("application/pdf"))
+                                    }
                                 )
                             }
                         }
@@ -233,6 +344,7 @@ fun NovaPdfApp(
 @Composable
 fun EmptyStateGuide(
     onLoadSampleImages: () -> Unit,
+    onOpenPdf: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     ElevatedCard(
@@ -292,30 +404,43 @@ fun EmptyStateGuide(
             GuideStep(
                 icon = Icons.Default.PictureAsPdf,
                 stepNumber = "4",
-                title = "Instant On-Device PDF",
-                description = "Generates a clean PDF with a reserved 'Created by Nova PDF Converter' footer."
+                title = "Instant On-Device PDF & Reader",
+                description = "Generates clean PDFs with reserved footers, or view any PDF from your device."
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            FilledTonalButton(
-                onClick = onLoadSampleImages,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .testTag("empty_state_load_samples_button"),
-                shape = RoundedCornerShape(12.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Load Sample Images (Invoice, Scenery, Receipt)",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                )
+                FilledTonalButton(
+                    onClick = onLoadSampleImages,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .testTag("empty_state_load_samples_button"),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "Try Samples",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+
+                FilledTonalButton(
+                    onClick = onOpenPdf,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .testTag("empty_state_open_pdf_button"),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "Open PDF",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
             }
         }
     }

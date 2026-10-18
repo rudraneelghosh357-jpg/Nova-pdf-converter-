@@ -10,9 +10,11 @@ import com.example.model.ImageQuality
 import com.example.model.PageMargin
 import com.example.model.PageOrientation
 import com.example.model.PageSizeOption
+import com.example.model.PdfReaderUiState
 import com.example.model.PdfSettings
 import com.example.util.FileUtils
 import com.example.util.PdfGenerator
+import com.example.util.PdfReaderHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,6 +43,50 @@ class NovaPdfViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+
+    private val _pdfReaderState = MutableStateFlow<PdfReaderUiState>(PdfReaderUiState.Closed)
+    val pdfReaderState: StateFlow<PdfReaderUiState> = _pdfReaderState.asStateFlow()
+
+    private val _pendingOpenUri = MutableStateFlow<Uri?>(null)
+    val pendingOpenUri: StateFlow<Uri?> = _pendingOpenUri.asStateFlow()
+
+    fun setPendingOpenUri(uri: Uri?) {
+        _pendingOpenUri.value = uri
+    }
+
+    fun openPdfForViewing(context: Context, uri: Uri) {
+        val title = PdfReaderHelper.getFileName(context, uri)
+        _pdfReaderState.value = PdfReaderUiState.Loading(uri, title)
+
+        viewModelScope.launch {
+            try {
+                val (file, extractedTitle, dimensions) = PdfReaderHelper.preparePdfForViewing(context, uri)
+                _pdfReaderState.value = PdfReaderUiState.Viewing(
+                    uri = uri,
+                    file = file,
+                    title = extractedTitle,
+                    pageCount = dimensions.size,
+                    pageDimensions = dimensions
+                )
+            } catch (se: SecurityException) {
+                _pdfReaderState.value = PdfReaderUiState.Error(
+                    uri = uri,
+                    title = title,
+                    message = se.localizedMessage ?: "This PDF is password-protected and cannot be opened."
+                )
+            } catch (e: Exception) {
+                _pdfReaderState.value = PdfReaderUiState.Error(
+                    uri = uri,
+                    title = title,
+                    message = e.localizedMessage ?: "This PDF file is corrupted or unsupported."
+                )
+            }
+        }
+    }
+
+    fun closePdfReader() {
+        _pdfReaderState.value = PdfReaderUiState.Closed
+    }
 
     fun addImages(context: Context, uris: List<Uri>) {
         if (uris.isEmpty()) return

@@ -16,8 +16,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Security
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -40,7 +41,10 @@ import com.example.ui.theme.NovaNavyDark
 import com.example.ui.theme.NovaPurple
 
 @Composable
-fun NovaHeader(modifier: Modifier = Modifier) {
+fun NovaHeader(
+    onOpenPdfClick: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -59,69 +63,98 @@ fun NovaHeader(modifier: Modifier = Modifier) {
                         )
                     )
                 )
-                .padding(horizontal = 20.dp, vertical = 18.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // App Logo Icon
-                    Box(
-                        modifier = Modifier
-                            .size(54.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(NovaNavyDark)
-                            .border(1.5.dp, NovaCyan.copy(alpha = 0.6f), RoundedCornerShape(16.dp)),
-                        contentAlignment = Alignment.Center
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_nova_logo),
-                            contentDescription = "Nova PDF Logo",
+                        // App Logo Icon
+                        Box(
                             modifier = Modifier
                                 .size(48.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(14.dp))
-
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "NOVA",
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.ExtraBold,
-                                    letterSpacing = 1.2.sp,
-                                    brush = Brush.horizontalGradient(
-                                        colors = listOf(NovaCyan, NovaPurple)
-                                    )
-                                )
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "PDF",
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(NovaNavyDark)
+                                .border(1.5.dp, NovaCyan.copy(alpha = 0.6f), RoundedCornerShape(14.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_nova_logo),
+                                contentDescription = "Nova PDF Logo",
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(RoundedCornerShape(10.dp))
                             )
                         }
 
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "NOVA",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        letterSpacing = 1.2.sp,
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(NovaCyan, NovaPurple)
+                                        )
+                                    )
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "PDF",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                )
+                            }
+
+                            Text(
+                                text = "Images to PDF & Reader",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            )
+                        }
+                    }
+
+                    // Top "Open PDF" button
+                    FilledTonalButton(
+                        onClick = onOpenPdfClick,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .height(38.dp)
+                            .testTag("header_open_pdf_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FileOpen,
+                            contentDescription = null,
+                            tint = NovaCyan,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Turn Any Image into PDF",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Medium
+                            text = "Open PDF",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold
                             )
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Privacy Trust Badge
                 Box(
@@ -133,7 +166,7 @@ fun NovaHeader(modifier: Modifier = Modifier) {
                             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                             shape = CircleShape
                         )
-                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                        .padding(horizontal = 14.dp, vertical = 4.dp)
                         .testTag("privacy_banner_badge")
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -141,13 +174,14 @@ fun NovaHeader(modifier: Modifier = Modifier) {
                             imageVector = Icons.Default.Lock,
                             contentDescription = "Privacy Icon",
                             tint = NovaCyan,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(13.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Your files never leave your device • 100% On-Device",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.SemiBold,
+                                fontSize = 10.5.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         )
