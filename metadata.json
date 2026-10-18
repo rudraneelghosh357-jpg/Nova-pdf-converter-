@@ -1,0 +1,6 @@
+{
+  "name": "Nova PDF",
+  "description": "Convert images to PDF completely on-device with custom margins, orientations, reordering, and instant preview.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
