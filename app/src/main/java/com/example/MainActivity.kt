@@ -24,11 +24,11 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -68,8 +68,10 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.model.ConversionResult
 import com.example.model.PdfReaderUiState
+import com.example.ui.components.ContinuousCameraScreen
 import com.example.ui.components.ConvertButtonSection
 import com.example.ui.components.ConvertingDialog
+import com.example.ui.components.CropScreen
 import com.example.ui.components.ImageGridSection
 import com.example.ui.components.NovaHeader
 import com.example.ui.components.PdfReaderScreen
@@ -102,6 +104,8 @@ class MainActivity : ComponentActivity() {
                 var isSplashActive by remember { mutableStateOf(true) }
                 val context = LocalContext.current
                 val pdfReaderState by viewModel.pdfReaderState.collectAsStateWithLifecycle()
+                val isCameraActive by viewModel.isCameraActive.collectAsStateWithLifecycle()
+                val activeCropItem by viewModel.activeCropItem.collectAsStateWithLifecycle()
 
                 // Splash screen 2-second timer then smooth fade-out and open pending intent if any
                 LaunchedEffect(Unit) {
@@ -120,6 +124,32 @@ class MainActivity : ComponentActivity() {
                             viewModel.openPdfForViewing(context, uri)
                         }
                     )
+
+                    // Continuous Camera Overlay
+                    if (isCameraActive) {
+                        ContinuousCameraScreen(
+                            onFinished = { uris ->
+                                viewModel.addImages(context, uris)
+                                viewModel.setCameraActive(false)
+                            },
+                            onCancel = {
+                                viewModel.setCameraActive(false)
+                            }
+                        )
+                    }
+
+                    // Crop Screen Overlay
+                    if (activeCropItem != null) {
+                        CropScreen(
+                            imageUri = activeCropItem!!.uri,
+                            onCropDone = { newUri ->
+                                viewModel.updateCroppedImage(context, activeCropItem!!.id, newUri)
+                            },
+                            onCancel = {
+                                viewModel.closeCrop()
+                            }
+                        )
+                    }
 
                     // PDF Reader Fullscreen Overlay
                     if (pdfReaderState !is PdfReaderUiState.Closed) {
@@ -242,11 +272,11 @@ fun NovaPdfApp(
                         }
                     }
                     else -> {
-                        // 1. Upload, Camera, and Open PDF selection
+                        // 1. Upload, Continuous Camera, and Open PDF selection
                         item {
                             UploadSection(
                                 onImagesSelected = { uris -> viewModel.addImages(context, uris) },
-                                onSingleImageCaptured = { uri -> viewModel.addSingleImage(context, uri) },
+                                onCameraClick = { viewModel.setCameraActive(true) },
                                 onLoadSampleImages = { viewModel.loadSampleImages(context) },
                                 onOpenPdf = {
                                     openPdfPickerLauncher.launch(arrayOf("application/pdf"))
@@ -254,12 +284,15 @@ fun NovaPdfApp(
                             )
                         }
 
-                        // 2. Thumbnails & Reordering / Rotation (if images exist)
+                        // 2. Thumbnails & Reordering / Rotation / Crop (if images exist)
                         if (images.isNotEmpty()) {
                             item {
                                 ImageGridSection(
                                     images = images,
                                     onRotateImage = { id -> viewModel.rotateImage(id) },
+                                    onCropImage = { id ->
+                                        images.find { it.id == id }?.let { viewModel.openCrop(it) }
+                                    },
                                     onMoveUp = { idx -> viewModel.moveImageUp(idx) },
                                     onMoveDown = { idx -> viewModel.moveImageDown(idx) },
                                     onDeleteImage = { id -> viewModel.removeImage(id) },
@@ -380,7 +413,7 @@ fun EmptyStateGuide(
                 icon = Icons.Default.PhotoLibrary,
                 stepNumber = "1",
                 title = "Select Any Images",
-                description = "Choose photos or camera captures in JPG, PNG, WEBP, or HEIC."
+                description = "Choose photos or continuous multi-shot camera scans in JPG, PNG, WEBP."
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -388,8 +421,8 @@ fun EmptyStateGuide(
             GuideStep(
                 icon = Icons.Default.CropRotate,
                 stepNumber = "2",
-                title = "Rotate & Reorder",
-                description = "Rotate individual pages 90° and rearrange the order to your preference."
+                title = "Crop, Rotate & Reorder",
+                description = "Crop images, rotate 90°, and rearrange pages to your preference."
             )
 
             Spacer(modifier = Modifier.height(12.dp))

@@ -39,17 +39,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -60,38 +54,21 @@ import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.ui.theme.NovaCyan
 import com.example.ui.theme.NovaPurple
-import com.example.util.FileUtils
-import java.io.File
 
 @Composable
 fun UploadSection(
     onImagesSelected: (List<Uri>) -> Unit,
-    onSingleImageCaptured: (Uri) -> Unit,
+    onCameraClick: () -> Unit,
     onLoadSampleImages: () -> Unit,
     onOpenPdf: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    var tempCameraFile by remember { mutableStateOf<File?>(null) }
-    var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
-
     // Multi-photo picker using Android zero-permission visual media picker
     val pickMultipleMedia = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia()
     ) { uris ->
         if (uris.isNotEmpty()) {
             onImagesSelected(uris)
-        }
-    }
-
-    // Camera launcher
-    val takePictureLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { success ->
-        if (success) {
-            tempCameraUri?.let { uri ->
-                onSingleImageCaptured(uri)
-            }
         }
     }
 
@@ -253,14 +230,9 @@ fun UploadSection(
                         )
                     }
 
-                    // Camera
+                    // Camera (Continuous Multi-Shot Scan Mode)
                     OutlinedButton(
-                        onClick = {
-                            val (file, uri) = FileUtils.createTempCameraUri(context)
-                            tempCameraFile = file
-                            tempCameraUri = uri
-                            takePictureLauncher.launch(uri)
-                        },
+                        onClick = onCameraClick,
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp)
@@ -327,7 +299,6 @@ fun UploadSection(
                     .fillMaxWidth()
                     .padding(14.dp)
             ) {
-                // Title and "+ Load 3 Samples" button stacked vertically to prevent clipping on 360dp width
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -398,7 +369,6 @@ fun UploadSection(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Helpful note for users on streaming emulator
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()

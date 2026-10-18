@@ -50,8 +50,42 @@ class NovaPdfViewModel : ViewModel() {
     private val _pendingOpenUri = MutableStateFlow<Uri?>(null)
     val pendingOpenUri: StateFlow<Uri?> = _pendingOpenUri.asStateFlow()
 
+    private val _isCameraActive = MutableStateFlow(false)
+    val isCameraActive: StateFlow<Boolean> = _isCameraActive.asStateFlow()
+
+    private val _activeCropItem = MutableStateFlow<ImageItem?>(null)
+    val activeCropItem: StateFlow<ImageItem?> = _activeCropItem.asStateFlow()
+
     fun setPendingOpenUri(uri: Uri?) {
         _pendingOpenUri.value = uri
+    }
+
+    fun setCameraActive(active: Boolean) {
+        _isCameraActive.value = active
+    }
+
+    fun openCrop(item: ImageItem) {
+        _activeCropItem.value = item
+    }
+
+    fun closeCrop() {
+        _activeCropItem.value = null
+    }
+
+    fun updateCroppedImage(context: Context, id: String, newUri: Uri) {
+        viewModelScope.launch {
+            val newItem = FileUtils.getImageItemFromUri(context, newUri)
+            _images.update { list ->
+                list.map { item ->
+                    if (item.id == id) {
+                        newItem.copy(id = item.id, name = item.name, rotationDegrees = item.rotationDegrees)
+                    } else {
+                        item
+                    }
+                }
+            }
+            _activeCropItem.value = null
+        }
     }
 
     fun openPdfForViewing(context: Context, uri: Uri) {

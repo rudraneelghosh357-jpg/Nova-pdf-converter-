@@ -1,16 +1,11 @@
 package com.example.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.RotateRight
@@ -32,7 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -57,6 +52,7 @@ import com.example.ui.theme.NovaPdfRed
 fun ImageGridSection(
     images: List<ImageItem>,
     onRotateImage: (String) -> Unit,
+    onCropImage: (String) -> Unit,
     onMoveUp: (Int) -> Unit,
     onMoveDown: (Int) -> Unit,
     onDeleteImage: (String) -> Unit,
@@ -132,7 +128,7 @@ fun ImageGridSection(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Thumbnail list with reordering, rotation and deletion
+        // Thumbnail list with reordering, rotation, crop and deletion
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -143,6 +139,7 @@ fun ImageGridSection(
                     pageIndex = index,
                     totalCount = images.size,
                     onRotate = { onRotateImage(item.id) },
+                    onCrop = { onCropImage(item.id) },
                     onMoveUp = { onMoveUp(index) },
                     onMoveDown = { onMoveDown(index) },
                     onDelete = { onDeleteImage(item.id) }
@@ -158,6 +155,7 @@ fun ImageItemCard(
     pageIndex: Int,
     totalCount: Int,
     onRotate: () -> Unit,
+    onCrop: () -> Unit,
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
     onDelete: () -> Unit,
@@ -180,8 +178,8 @@ fun ImageItemCard(
             // Thumbnail with rotation preview & Page number tag
             Box(
                 modifier = Modifier
-                    .size(68.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 AsyncImage(
@@ -200,18 +198,18 @@ fun ImageItemCard(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(3.dp)
+                        .padding(4.dp)
                         .background(
                             color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.75f),
-                            shape = RoundedCornerShape(4.dp)
+                            shape = RoundedCornerShape(6.dp)
                         )
-                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = "P${pageIndex + 1}",
+                        text = "Page ${pageIndex + 1}",
                         style = MaterialTheme.typography.labelSmall.copy(
                             color = MaterialTheme.colorScheme.inverseOnSurface,
-                            fontSize = 9.5.sp,
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Bold
                         )
                     )
@@ -222,18 +220,18 @@ fun ImageItemCard(
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
-                            .padding(3.dp)
+                            .padding(4.dp)
                             .background(
                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
-                                shape = RoundedCornerShape(3.dp)
+                                shape = RoundedCornerShape(4.dp)
                             )
-                            .padding(horizontal = 3.dp, vertical = 1.dp)
+                            .padding(horizontal = 4.dp, vertical = 1.dp)
                     ) {
                         Text(
                             text = "${item.rotationDegrees}°",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = MaterialTheme.colorScheme.onPrimary,
-                                fontSize = 8.5.sp,
+                                fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         )
@@ -241,7 +239,7 @@ fun ImageItemCard(
                 }
             }
 
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
             // File Information
             Column(
@@ -249,10 +247,7 @@ fun ImageItemCard(
             ) {
                 Text(
                     text = item.name,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.5.sp
-                    ),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -262,24 +257,23 @@ fun ImageItemCard(
                 Text(
                     text = if (item.formattedSize.isNotBlank()) item.formattedSize else "Image",
                     style = MaterialTheme.typography.labelSmall.copy(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 )
             }
 
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-            // Action Buttons (Rotate, Reorder Up/Down, Delete)
+            // Action Buttons (Rotate, Crop, Reorder Up/Down, Delete)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 // Rotate 90°
                 FilledTonalIconButton(
                     onClick = onRotate,
                     modifier = Modifier
-                        .size(34.dp)
+                        .size(36.dp)
                         .testTag("rotate_button_$pageIndex")
                 ) {
                     Icon(
@@ -289,12 +283,26 @@ fun ImageItemCard(
                     )
                 }
 
+                // Crop
+                FilledTonalIconButton(
+                    onClick = onCrop,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .testTag("crop_button_$pageIndex")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Crop,
+                        contentDescription = "Crop image",
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+
                 // Move Up
                 FilledTonalIconButton(
                     onClick = onMoveUp,
                     enabled = pageIndex > 0,
                     modifier = Modifier
-                        .size(34.dp)
+                        .size(36.dp)
                         .testTag("move_up_button_$pageIndex")
                 ) {
                     Icon(
@@ -309,7 +317,7 @@ fun ImageItemCard(
                     onClick = onMoveDown,
                     enabled = pageIndex < totalCount - 1,
                     modifier = Modifier
-                        .size(34.dp)
+                        .size(36.dp)
                         .testTag("move_down_button_$pageIndex")
                 ) {
                     Icon(
@@ -323,7 +331,7 @@ fun ImageItemCard(
                 IconButton(
                     onClick = onDelete,
                     modifier = Modifier
-                        .size(34.dp)
+                        .size(36.dp)
                         .testTag("delete_button_$pageIndex"),
                     colors = IconButtonDefaults.iconButtonColors(
                         contentColor = NovaPdfRed
