@@ -291,7 +291,12 @@ fun ResultSection(
                 ) {
                     Icon(imageVector = Icons.Default.FileOpen, contentDescription = "Open")
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Open File", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        text = "Open File",
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
 
                 OutlinedButton(
@@ -304,7 +309,12 @@ fun ResultSection(
                 ) {
                     Icon(imageVector = Icons.Default.Share, contentDescription = "Share")
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Share", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        text = "Share",
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
             }
 

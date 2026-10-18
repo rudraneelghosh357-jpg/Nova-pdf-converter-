@@ -2,7 +2,6 @@ package com.example.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,7 +29,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -62,7 +60,7 @@ fun PdfSettingsCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp)
+                .padding(16.dp)
         ) {
             // Card Title
             Row(
@@ -73,28 +71,38 @@ fun PdfSettingsCard(
                     imageVector = Icons.Default.Settings,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(19.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "PDF Output Settings",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // 1. Page Size
             SettingRow(title = "Page Size") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     PageSizeOption.entries.forEach { option ->
                         FilterChip(
                             selected = settings.pageSize == option,
                             onClick = { onPageSizeChange(option) },
-                            label = { Text(option.label) },
+                            label = {
+                                Text(
+                                    text = option.label,
+                                    fontSize = 12.sp,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            },
                             modifier = Modifier
                                 .weight(1f)
                                 .testTag("page_size_${option.name.lowercase()}"),
@@ -107,19 +115,26 @@ fun PdfSettingsCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // 2. Orientation
             SettingRow(title = "Orientation") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     PageOrientation.entries.forEach { orientation ->
                         FilterChip(
                             selected = settings.orientation == orientation,
                             onClick = { onOrientationChange(orientation) },
-                            label = { Text(orientation.label) },
+                            label = {
+                                Text(
+                                    text = orientation.label,
+                                    fontSize = 12.sp,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            },
                             modifier = Modifier
                                 .weight(1f)
                                 .testTag("orientation_${orientation.name.lowercase()}"),
@@ -132,19 +147,26 @@ fun PdfSettingsCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // 3. Margin
             SettingRow(title = "Page Margins") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     PageMargin.entries.forEach { margin ->
                         FilterChip(
                             selected = settings.margin == margin,
                             onClick = { onMarginChange(margin) },
-                            label = { Text(margin.label) },
+                            label = {
+                                Text(
+                                    text = margin.label,
+                                    fontSize = 12.sp,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            },
                             modifier = Modifier
                                 .weight(1f)
                                 .testTag("margin_${margin.name.lowercase()}"),
@@ -157,19 +179,26 @@ fun PdfSettingsCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // 4. Quality (Compression)
             SettingRow(title = "Image Quality & Compression") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     ImageQuality.entries.forEach { quality ->
                         FilterChip(
                             selected = settings.quality == quality,
                             onClick = { onQualityChange(quality) },
-                            label = { Text(quality.label) },
+                            label = {
+                                Text(
+                                    text = quality.label,
+                                    fontSize = 12.sp,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            },
                             modifier = Modifier
                                 .weight(1f)
                                 .testTag("quality_${quality.name.lowercase()}"),
@@ -192,12 +221,13 @@ fun PdfSettingsCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("pdf_file_name_input"),
-                    placeholder = { Text("e.g. My_Scanned_Document") },
+                    placeholder = { Text("e.g. My_Scanned_Document", fontSize = 13.sp) },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Description,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
                         )
                     },
                     trailingIcon = {
@@ -215,7 +245,7 @@ fun PdfSettingsCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Mandatory Footer Notice
             Box(
@@ -228,20 +258,20 @@ fun PdfSettingsCard(
                         MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
                         RoundedCornerShape(10.dp)
                     )
-                    .padding(horizontal = 12.dp, vertical = 10.dp)
+                    .padding(horizontal = 10.dp, vertical = 8.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = null,
                         tint = NovaCyan,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(7.dp))
                     Text(
                         text = "Footer \"Created by Nova PDF Converter\" will be placed in the bottom-right corner of each page without overlapping images.",
                         style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 11.5.sp,
+                            fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
@@ -261,10 +291,11 @@ private fun SettingRow(
             text = title,
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurface
             )
         )
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(5.dp))
         content()
     }
 }

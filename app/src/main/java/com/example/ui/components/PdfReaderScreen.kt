@@ -358,6 +358,7 @@ fun PdfReaderScreen(
                     Surface(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
                             .padding(bottom = 16.dp)
                             .shadow(6.dp, CircleShape)
                             .testTag("pdf_page_counter_pill"),

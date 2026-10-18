@@ -95,9 +95,13 @@ fun ConvertButtonSection(
                         },
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
                             color = if (isEnabled) Color.White else Color.LightGray,
                             letterSpacing = 0.5.sp
-                        )
+                        ),
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 }
             }
