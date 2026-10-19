@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.R
@@ -114,10 +115,12 @@ fun NovaHeader(
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "PDF CONVERTER",
-                                    style = MaterialTheme.typography.titleMedium.copy(
+                                    style = MaterialTheme.typography.titleSmall.copy(
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
-                                    )
+                                    ),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
 

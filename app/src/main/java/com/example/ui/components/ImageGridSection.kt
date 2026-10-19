@@ -173,195 +173,58 @@ fun ImageItemCard(
             .testTag("image_item_card_$pageIndex"),
         shape = RoundedCornerShape(16.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(10.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(10.dp)
         ) {
-            // Thumbnail with rotation preview & Page number tag
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(item.uri)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = item.name,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .rotate(item.rotationDegrees.toFloat()),
-                    contentScale = ContentScale.Crop
-                )
-
-                // Page badge
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(4.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.75f),
-                            shape = RoundedCornerShape(6.dp)
-                        )
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = "Page ${pageIndex + 1}",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = MaterialTheme.colorScheme.inverseOnSurface,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    )
-                }
-
-                // Rotation degree indicator
-                if (item.rotationDegrees != 0) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(4.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
-                                shape = RoundedCornerShape(4.dp)
-                            )
-                            .padding(horizontal = 4.dp, vertical = 1.dp)
-                    ) {
-                        Text(
-                            text = "${item.rotationDegrees}°",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // File Information
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = item.name,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(2.dp))
-
-                Text(
-                    text = if (item.formattedSize.isNotBlank()) item.formattedSize else "Image",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Action Buttons (Rotate, Crop, Reorder Up/Down, Delete)
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Rotate 90°
-                FilledTonalIconButton(
-                    onClick = onRotate,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .testTag("rotate_button_$pageIndex")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.RotateRight,
-                        contentDescription = "Rotate 90 degrees",
-                        modifier = Modifier.size(16.dp)
+                // Thumbnail 90dp
+                Box(modifier = Modifier.size(90.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context).data(item.uri).crossfade(true).build(),
+                        contentDescription = item.name,
+                        modifier = Modifier.fillMaxSize().rotate(item.rotationDegrees.toFloat()),
+                        contentScale = ContentScale.Crop
                     )
                 }
-
-                // Crop
-                FilledTonalIconButton(
-                    onClick = onCrop,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .testTag("crop_button_$pageIndex")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Crop,
-                        contentDescription = "Crop image",
-                        modifier = Modifier.size(16.dp)
-                    )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = item.name, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(text = if (item.formattedSize.isNotBlank()) item.formattedSize else "Image", style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant))
                 }
-
-                // Filter
-                FilledTonalIconButton(
-                    onClick = onFilter,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .testTag("filter_button_$pageIndex")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FilterList,
-                        contentDescription = "Filter image",
-                        modifier = Modifier.size(16.dp)
-                    )
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            // Action Buttons: 2 rows of 3 buttons
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    ActionButton(onClick = onRotate, icon = Icons.Default.RotateRight, description = "Rotate", modifier = Modifier.weight(1f))
+                    ActionButton(onClick = onCrop, icon = Icons.Default.Crop, description = "Crop", modifier = Modifier.weight(1f))
+                    ActionButton(onClick = onFilter, icon = Icons.Default.FilterList, description = "Filter", modifier = Modifier.weight(1f))
                 }
-
-                // Move Up
-                FilledTonalIconButton(
-                    onClick = onMoveUp,
-                    enabled = pageIndex > 0,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .testTag("move_up_button_$pageIndex")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowUpward,
-                        contentDescription = "Move Up",
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-
-                // Move Down
-                FilledTonalIconButton(
-                    onClick = onMoveDown,
-                    enabled = pageIndex < totalCount - 1,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .testTag("move_down_button_$pageIndex")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowDownward,
-                        contentDescription = "Move Down",
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-
-                // Delete
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .testTag("delete_button_$pageIndex"),
-                    colors = IconButtonDefaults.iconButtonColors(
-                        contentColor = NovaPdfRed
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete image",
-                        modifier = Modifier.size(16.dp)
-                    )
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    ActionButton(onClick = onMoveUp, icon = Icons.Default.ArrowUpward, description = "Up", modifier = Modifier.weight(1f), enabled = pageIndex > 0)
+                    ActionButton(onClick = onMoveDown, icon = Icons.Default.ArrowDownward, description = "Down", modifier = Modifier.weight(1f), enabled = pageIndex < totalCount - 1)
+                    ActionButton(onClick = onDelete, icon = Icons.Default.Delete, description = "Delete", modifier = Modifier.weight(1f), isDelete = true)
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ActionButton(onClick: () -> Unit, icon: androidx.compose.ui.graphics.vector.ImageVector, description: String, modifier: Modifier, enabled: Boolean = true, isDelete: Boolean = false) {
+    FilledTonalIconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.height(44.dp),
+        colors = if (isDelete) IconButtonDefaults.filledTonalIconButtonColors(containerColor = NovaPdfRed.copy(alpha = 0.2f), contentColor = NovaPdfRed) else IconButtonDefaults.filledTonalIconButtonColors()
+    ) {
+        Icon(imageVector = icon, contentDescription = description, modifier = Modifier.size(22.dp))
+    }
+}
     }
 }
