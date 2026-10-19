@@ -8,7 +8,6 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,7 +20,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -49,7 +47,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -62,9 +59,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.ui.theme.NovaCyan
-import com.example.ui.theme.NovaNavyDark
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -75,6 +70,10 @@ enum class AspectRatioPreset(val label: String, val ratio: Float?) {
     SQUARE("1:1", 1f),
     PORTRAIT_4_3("4:3", 3f / 4f),
     A4("A4", 1f / 1.414f)
+}
+
+private enum class DragMode {
+    NONE, MOVE_ALL, TL, TR, BL, BR, TOP, BOTTOM, LEFT, RIGHT
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -92,11 +91,13 @@ fun CropScreen(
     var selectedPreset by remember { mutableStateOf(AspectRatioPreset.FREE) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // Crop box coordinates relative to displayed bitmap (0f to 1f)
+    // Normalized coordinates (0f to 1f) relative to bitmap bounds
     var cropLeft by remember { mutableFloatStateOf(0.1f) }
     var cropTop by remember { mutableFloatStateOf(0.1f) }
     var cropRight by remember { mutableFloatStateOf(0.9f) }
     var cropBottom by remember { mutableFloatStateOf(0.9f) }
+
+    var dragMode by remember { mutableStateOf(DragMode.NONE) }
 
     BackHandler {
         onCancel()
@@ -118,7 +119,6 @@ fun CropScreen(
         isLoading = false
     }
 
-    // Handle rotation
     fun rotateBitmap() {
         originalBitmap?.let { bmp ->
             rotationAngle = (rotationAngle + 90f) % 360f
@@ -136,6 +136,7 @@ fun CropScreen(
         cropTop = 0.05f
         cropRight = 0.95f
         cropBottom = 0.95f
+        selectedPreset = AspectRatioPreset.FREE
     }
 
     fun applyPreset(preset: AspectRatioPreset) {
@@ -144,9 +145,9 @@ fun CropScreen(
             val width = 0.8f
             val height = width / preset.ratio
             cropLeft = 0.1f
-            cropTop = 0.1f.coerceAtLeast((1f - height) / 2f)
-            cropRight = (cropLeft + width).coerceAtMost(0.9f)
-            cropBottom = (cropTop + height).coerceAtMost(0.9f)
+            cropTop = ((1f - height) / 2f).coerceIn(0.05f, 0.8f)
+            cropRight = (cropLeft + width).coerceAtMost(0.95f)
+            cropBottom = (cropTop + height).coerceAtMost(0.95f)
         } else {
             resetCrop()
         }
@@ -259,49 +260,9 @@ fun CropScreen(
             } else {
                 val bitmap = displayedBitmap!!
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Canvas(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .pointerInput(Unit) {
-                                detectDragGestures { change, dragAmount ->
-                                    change.consume()
-                                    val canvasWidth = size.width.toFloat()
-                                    val canvasHeight = size.height.toFloat()
-                                    if (canvasWidth > 0 && canvasHeight > 0) {
-                                        val dx = dragAmount.x / canvasWidth
-                                        val dy = dragAmount.y / canvasHeight
-
-                                        // Simple box dragging (move all 4 sides proportionally or adjust right/bottom)
-                                        cropLeft = (cropLeft + dx).coerceIn(0f, cropRight - 0.1f)
-                                        cropTop = (cropTop + dy).coerceIn(0f, cropBottom - 0.1f)
-                                        cropRight = (cropRight + dx).coerceIn(cropLeft + 0.1f, 1f)
-                                        cropBottom = (cropBottom + dy).coerceIn(cropTop + 0.1f, 1f)
-                                    }
-                                }
-                            }
-                    ) {
-                        val canvasWidth = size.width
-                        val canvasHeight = size.height
-
-                        val bmpWidth = bitmap.width.toFloat()
-                        val bmpHeight = bitmap.height.toFloat()
-                        val scale = minOf(canvasWidth / bmpWidth, canvasHeight / bmpHeight)
-                        val drawWidth = bmpWidth * scale
-                        val drawHeight = bmpHeight * scale
-                        val startX = (canvasWidth - drawWidth) / 2f
-                        val startY = (canvasHeight - drawHeight) / 2f
-
-                        // Draw bitmap inside bounds
-                        // Note: drawImage via Android Canvas / drawIntoCanvas is not needed when using drawImage with native canvas or simpler approach:
-                        // Let's draw crop overlay box over the UI
-                    }
-
-                    // Render actual bitmap using Android Image or custom Drawing
                     androidx.compose.foundation.Image(
                         bitmap = bitmap.asImageBitmap(),
                         contentDescription = "Crop Preview",
@@ -309,42 +270,179 @@ fun CropScreen(
                         contentScale = androidx.compose.ui.layout.ContentScale.Fit
                     )
 
-                    // Crop Rectangle Overlay Canvas
+                    // Fully adjustable touch crop canvas with corner & edge handles
                     Canvas(
                         modifier = Modifier
                             .fillMaxSize()
                             .pointerInput(selectedPreset) {
-                                detectDragGestures { change, dragAmount ->
-                                    change.consume()
-                                    val w = size.width.toFloat()
-                                    val h = size.height.toFloat()
-                                    if (w > 0 && h > 0) {
-                                        val dx = dragAmount.x / w
-                                        val dy = dragAmount.y / h
-                                        cropLeft = (cropLeft + dx).coerceIn(0f, cropRight - 0.15f)
-                                        cropTop = (cropTop + dy).coerceIn(0f, cropBottom - 0.15f)
-                                        cropRight = (cropRight + dx).coerceIn(cropLeft + 0.15f, 1f)
-                                        cropBottom = (cropBottom + dy).coerceIn(cropTop + 0.15f, 1f)
+                                detectDragGestures(
+                                    onDragStart = { offset ->
+                                        val canvasW = size.width.toFloat()
+                                        val canvasH = size.height.toFloat()
+                                        if (canvasW <= 0f || canvasH <= 0f) return@detectDragGestures
+
+                                        val bmpW = bitmap.width.toFloat()
+                                        val bmpH = bitmap.height.toFloat()
+                                        val scale = minOf(canvasW / bmpW, canvasH / bmpH)
+                                        val drawW = bmpW * scale
+                                        val drawH = bmpH * scale
+                                        val startX = (canvasW - drawW) / 2f
+                                        val startY = (canvasH - drawH) / 2f
+
+                                        val leftPx = startX + cropLeft * drawW
+                                        val topPx = startY + cropTop * drawH
+                                        val rightPx = startX + cropRight * drawW
+                                        val bottomPx = startY + cropBottom * drawH
+
+                                        val touchTolerance = 60f // generous touch radius for handles
+
+                                        dragMode = when {
+                                            // Corners
+                                            (offset - Offset(leftPx, topPx)).getDistance() < touchTolerance -> DragMode.TL
+                                            (offset - Offset(rightPx, topPx)).getDistance() < touchTolerance -> DragMode.TR
+                                            (offset - Offset(leftPx, bottomPx)).getDistance() < touchTolerance -> DragMode.BL
+                                            (offset - Offset(rightPx, bottomPx)).getDistance() < touchTolerance -> DragMode.BR
+                                            // Edges
+                                            kotlin.math.abs(offset.x - leftPx) < touchTolerance && offset.y in topPx..bottomPx -> DragMode.LEFT
+                                            kotlin.math.abs(offset.x - rightPx) < touchTolerance && offset.y in topPx..bottomPx -> DragMode.RIGHT
+                                            kotlin.math.abs(offset.y - topPx) < touchTolerance && offset.x in leftPx..rightPx -> DragMode.TOP
+                                            kotlin.math.abs(offset.y - bottomPx) < touchTolerance && offset.x in leftPx..rightPx -> DragMode.BOTTOM
+                                            // Inside box -> move all
+                                            offset.x in leftPx..rightPx && offset.y in topPx..bottomPx -> DragMode.MOVE_ALL
+                                            else -> DragMode.NONE
+                                        }
+                                    },
+                                    onDragEnd = { dragMode = DragMode.NONE },
+                                    onDragCancel = { dragMode = DragMode.NONE },
+                                    onDrag = { change, dragAmount ->
+                                        change.consume()
+                                        val canvasW = size.width.toFloat()
+                                        val canvasH = size.height.toFloat()
+                                        if (canvasW <= 0f || canvasH <= 0f || dragMode == DragMode.NONE) return@detectDragGestures
+
+                                        val bmpW = bitmap.width.toFloat()
+                                        val bmpH = bitmap.height.toFloat()
+                                        val scale = minOf(canvasW / bmpW, canvasH / bmpH)
+                                        val drawW = bmpW * scale
+                                        val drawH = bmpH * scale
+
+                                        val dx = dragAmount.x / drawW
+                                        val dy = dragAmount.y / drawH
+                                        val minSize = 0.15f
+
+                                        when (dragMode) {
+                                            DragMode.MOVE_ALL -> {
+                                                val width = cropRight - cropLeft
+                                                val height = cropBottom - cropTop
+                                                var newLeft = (cropLeft + dx).coerceIn(0f, 1f - width)
+                                                var newTop = (cropTop + dy).coerceIn(0f, 1f - height)
+                                                cropLeft = newLeft
+                                                cropTop = newTop
+                                                cropRight = newLeft + width
+                                                cropBottom = newTop + height
+                                            }
+                                            DragMode.TL -> {
+                                                if (selectedPreset.ratio == null) {
+                                                    cropLeft = (cropLeft + dx).coerceIn(0f, cropRight - minSize)
+                                                    cropTop = (cropTop + dy).coerceIn(0f, cropBottom - minSize)
+                                                } else {
+                                                    val ratio = selectedPreset.ratio!!
+                                                    val newL = (cropLeft + dx).coerceIn(0f, cropRight - minSize)
+                                                    val newW = cropRight - newL
+                                                    val newH = newW * ratio
+                                                    if (cropBottom - newH >= 0f) {
+                                                        cropLeft = newL
+                                                        cropTop = cropBottom - newH
+                                                    }
+                                                }
+                                            }
+                                            DragMode.TR -> {
+                                                if (selectedPreset.ratio == null) {
+                                                    cropRight = (cropRight + dx).coerceIn(cropLeft + minSize, 1f)
+                                                    cropTop = (cropTop + dy).coerceIn(0f, cropBottom - minSize)
+                                                } else {
+                                                    val ratio = selectedPreset.ratio!!
+                                                    val newR = (cropRight + dx).coerceIn(cropLeft + minSize, 1f)
+                                                    val newW = newR - cropLeft
+                                                    val newH = newW * ratio
+                                                    if (cropBottom - newH >= 0f) {
+                                                        cropRight = newR
+                                                        cropTop = cropBottom - newH
+                                                    }
+                                                }
+                                            }
+                                            DragMode.BL -> {
+                                                if (selectedPreset.ratio == null) {
+                                                    cropLeft = (cropLeft + dx).coerceIn(0f, cropRight - minSize)
+                                                    cropBottom = (cropBottom + dy).coerceIn(cropTop + minSize, 1f)
+                                                } else {
+                                                    val ratio = selectedPreset.ratio!!
+                                                    val newL = (cropLeft + dx).coerceIn(0f, cropRight - minSize)
+                                                    val newW = cropRight - newL
+                                                    val newH = newW * ratio
+                                                    if (cropTop + newH <= 1f) {
+                                                        cropLeft = newL
+                                                        cropBottom = cropTop + newH
+                                                    }
+                                                }
+                                            }
+                                            DragMode.BR -> {
+                                                if (selectedPreset.ratio == null) {
+                                                    cropRight = (cropRight + dx).coerceIn(cropLeft + minSize, 1f)
+                                                    cropBottom = (cropBottom + dy).coerceIn(cropTop + minSize, 1f)
+                                                } else {
+                                                    val ratio = selectedPreset.ratio!!
+                                                    val newR = (cropRight + dx).coerceIn(cropLeft + minSize, 1f)
+                                                    val newW = newR - cropLeft
+                                                    val newH = newW * ratio
+                                                    if (cropTop + newH <= 1f) {
+                                                        cropRight = newR
+                                                        cropBottom = cropTop + newH
+                                                    }
+                                                }
+                                            }
+                                            DragMode.LEFT -> {
+                                                cropLeft = (cropLeft + dx).coerceIn(0f, cropRight - minSize)
+                                            }
+                                            DragMode.RIGHT -> {
+                                                cropRight = (cropRight + dx).coerceIn(cropLeft + minSize, 1f)
+                                            }
+                                            DragMode.TOP -> {
+                                                cropTop = (cropTop + dy).coerceIn(0f, cropBottom - minSize)
+                                            }
+                                            DragMode.BOTTOM -> {
+                                                cropBottom = (cropBottom + dy).coerceIn(cropTop + minSize, 1f)
+                                            }
+                                            else -> {}
+                                        }
                                     }
-                                }
+                                )
                             }
                     ) {
-                        val w = size.width
-                        val h = size.height
+                        val canvasW = size.width
+                        val canvasH = size.height
 
-                        val left = cropLeft * w
-                        val top = cropTop * h
-                        val right = cropRight * w
-                        val bottom = cropBottom * h
+                        val bmpW = bitmap.width.toFloat()
+                        val bmpH = bitmap.height.toFloat()
+                        val scale = minOf(canvasW / bmpW, canvasH / bmpH)
+                        val drawW = bmpW * scale
+                        val drawH = bmpH * scale
+                        val startX = (canvasW - drawW) / 2f
+                        val startY = (canvasH - drawH) / 2f
 
-                        // Draw semi-transparent dark overlay outside crop rect
+                        val left = startX + cropLeft * drawW
+                        val top = startY + cropTop * drawH
+                        val right = startX + cropRight * drawW
+                        val bottom = startY + cropBottom * drawH
+
+                        // Dimmed overlay outside crop rect
                         val path = Path().apply {
-                            addRect(Rect(0f, 0f, w, h))
+                            addRect(Rect(0f, 0f, canvasW, canvasH))
                             addRect(Rect(left, top, right, bottom))
                         }
-                        drawPath(path, color = Color.Black.copy(alpha = 0.65f))
+                        drawPath(path, color = Color.Black.copy(alpha = 0.7f))
 
-                        // Draw crop border
+                        // Crop border
                         drawRect(
                             color = Color.White,
                             topLeft = Offset(left, top),
@@ -352,13 +450,41 @@ fun CropScreen(
                             style = Stroke(width = 2.dp.toPx())
                         )
 
-                        // Draw grid lines inside crop rect
+                        // Rule of thirds grid lines
                         val thirdW = (right - left) / 3f
                         val thirdH = (bottom - top) / 3f
-                        drawLine(Color.White.copy(alpha = 0.4f), Offset(left + thirdW, top), Offset(left + thirdW, bottom), 1.dp.toPx())
-                        drawLine(Color.White.copy(alpha = 0.4f), Offset(left + 2 * thirdW, top), Offset(left + 2 * thirdW, bottom), 1.dp.toPx())
-                        drawLine(Color.White.copy(alpha = 0.4f), Offset(left, top + thirdH), Offset(right, top + thirdH), 1.dp.toPx())
-                        drawLine(Color.White.copy(alpha = 0.4f), Offset(left, top + 2 * thirdH), Offset(right, top + 2 * thirdH), 1.dp.toPx())
+                        drawLine(Color.White.copy(alpha = 0.5f), Offset(left + thirdW, top), Offset(left + thirdW, bottom), 1.dp.toPx())
+                        drawLine(Color.White.copy(alpha = 0.5f), Offset(left + 2 * thirdW, top), Offset(left + 2 * thirdW, bottom), 1.dp.toPx())
+                        drawLine(Color.White.copy(alpha = 0.5f), Offset(left, top + thirdH), Offset(right, top + thirdH), 1.dp.toPx())
+                        drawLine(Color.White.copy(alpha = 0.5f), Offset(left, top + 2 * thirdH), Offset(right, top + 2 * thirdH), 1.dp.toPx())
+
+                        // Corner handles (large touch targets / visual indicators)
+                        val handleLength = 24.dp.toPx()
+                        val handleStroke = 4.dp.toPx()
+                        val handleColor = NovaCyan
+
+                        // Top-Left corner handle
+                        drawLine(handleColor, Offset(left, top), Offset(left + handleLength, top), handleStroke)
+                        drawLine(handleColor, Offset(left, top), Offset(left, top + handleLength), handleStroke)
+
+                        // Top-Right corner handle
+                        drawLine(handleColor, Offset(right, top), Offset(right - handleLength, top), handleStroke)
+                        drawLine(handleColor, Offset(right, top), Offset(right, top + handleLength), handleStroke)
+
+                        // Bottom-Left corner handle
+                        drawLine(handleColor, Offset(left, bottom), Offset(left + handleLength, bottom), handleStroke)
+                        drawLine(handleColor, Offset(left, bottom), Offset(left, bottom - handleLength), handleStroke)
+
+                        // Bottom-Right corner handle
+                        drawLine(handleColor, Offset(right, bottom), Offset(right - handleLength, bottom), handleStroke)
+                        drawLine(handleColor, Offset(right, bottom), Offset(right, bottom - handleLength), handleStroke)
+
+                        // Edge handle indicator pills
+                        val pillRadius = 6.dp.toPx()
+                        drawCircle(handleColor, pillRadius, Offset((left + right) / 2f, top))
+                        drawCircle(handleColor, pillRadius, Offset((left + right) / 2f, bottom))
+                        drawCircle(handleColor, pillRadius, Offset(left, (top + bottom) / 2f))
+                        drawCircle(handleColor, pillRadius, Offset(right, (top + bottom) / 2f))
                     }
                 }
             }

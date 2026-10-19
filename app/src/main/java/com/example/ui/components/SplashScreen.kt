@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -32,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -99,16 +102,16 @@ fun SplashScreen(
                 .scale(scaleAnim.value)
                 .alpha(alphaAnim.value)
         ) {
-            // Animated Glowing Logo
+            // Unclipped 200dp rounded square logo container with ContentScale.Fit
             Box(
                 modifier = Modifier
-                    .size(110.dp)
-                    .clip(RoundedCornerShape(28.dp))
+                    .size(200.dp)
+                    .clip(RoundedCornerShape(36.dp))
                     .background(NovaNavyDark)
                     .border(
-                        width = (2.5.dp * glowAnim.value),
+                        width = (3.dp * glowAnim.value),
                         color = NovaCyan.copy(alpha = glowAnim.value.coerceIn(0.4f, 1f)),
-                        shape = RoundedCornerShape(28.dp)
+                        shape = RoundedCornerShape(36.dp)
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -116,8 +119,9 @@ fun SplashScreen(
                     painter = painterResource(id = R.drawable.ic_nova_logo),
                     contentDescription = "Nova PDF Converter Logo",
                     modifier = Modifier
-                        .size(96.dp)
-                        .clip(RoundedCornerShape(24.dp))
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentScale = ContentScale.Fit
                 )
             }
 
