@@ -47,7 +47,7 @@ object PdfGenerator {
             throw IllegalArgumentException("No images to convert")
         }
 
-        val pdfDir = File(context.cacheDir, "generated_pdfs")
+        val pdfDir = File(context.filesDir, "pdfs")
         if (!pdfDir.exists()) pdfDir.mkdirs()
 
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
@@ -57,8 +57,15 @@ object PdfGenerator {
             "Nova_$timeStamp"
         }
         val safeName = rawName.replace(Regex("[^a-zA-Z0-9._-]"), "_")
-        val finalFileName = if (safeName.endsWith(".pdf", ignoreCase = true)) safeName else "$safeName.pdf"
-        val outputFile = File(pdfDir, finalFileName)
+        val baseFileName = if (safeName.endsWith(".pdf", ignoreCase = true)) safeName else "$safeName.pdf"
+var finalFileName = baseFileName
+var outputFile = File(pdfDir, finalFileName)
+var counter = 1
+while (outputFile.exists()) {
+    finalFileName = baseFileName.substringBeforeLast(".") + "_$counter.pdf"
+    outputFile = File(pdfDir, finalFileName)
+    counter++
+}
 
         val document = PdfDocument()
         val totalImages = images.size
