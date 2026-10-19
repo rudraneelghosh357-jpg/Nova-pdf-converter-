@@ -404,7 +404,6 @@ fun NovaPdfApp(
         }
         
             }
-        }
 
     // Converting Progress Dialog
     if (uiState is UiState.Converting) {
