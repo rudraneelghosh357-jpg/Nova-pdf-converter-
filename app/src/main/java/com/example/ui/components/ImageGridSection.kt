@@ -224,7 +224,6 @@ fun ActionButton(onClick: () -> Unit, icon: androidx.compose.ui.graphics.vector.
         colors = if (isDelete) IconButtonDefaults.filledTonalIconButtonColors(containerColor = NovaPdfRed.copy(alpha = 0.2f), contentColor = NovaPdfRed) else IconButtonDefaults.filledTonalIconButtonColors()
     ) {
         Icon(imageVector = icon, contentDescription = description, modifier = Modifier.size(22.dp))
-    }
+        }
 }
-    }
-}
+
