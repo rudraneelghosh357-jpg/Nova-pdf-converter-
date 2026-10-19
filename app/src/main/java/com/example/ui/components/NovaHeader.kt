@@ -136,7 +136,7 @@ fun NovaHeader(
                     }
 
                     // Top "Open PDF" button
-                    FilledTonalButton(
+                     if (false) FilledTonalButton(
                         onClick = onOpenPdfClick,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
