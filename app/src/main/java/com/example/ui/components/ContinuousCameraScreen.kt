@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.FlashAuto
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
@@ -86,6 +87,7 @@ import java.util.concurrent.Executors
 @Composable
 fun ContinuousCameraScreen(
     onFinished: (List<Uri>) -> Unit,
+    onFilterShot: (Uri) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -333,6 +335,21 @@ fun ContinuousCameraScreen(
                                 contentScale = ContentScale.Crop
                             )
 
+                            // Filter button on thumbnail
+                            IconButton(
+                                onClick = { onFilterShot(uri) },
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .size(22.dp)
+                                    .background(Color.Black.copy(alpha = 0.7f), CircleShape)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.FilterList,
+                                    contentDescription = "Filter photo",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
                             // Delete button on thumbnail
                             IconButton(
                                 onClick = {

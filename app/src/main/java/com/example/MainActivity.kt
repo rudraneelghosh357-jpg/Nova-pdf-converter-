@@ -67,11 +67,14 @@ import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.model.ConversionResult
+import com.example.model.ImageItem
 import com.example.model.PdfReaderUiState
+import com.example.model.ScanFilter
 import com.example.ui.components.ContinuousCameraScreen
 import com.example.ui.components.ConvertButtonSection
 import com.example.ui.components.ConvertingDialog
 import com.example.ui.components.CropScreen
+import com.example.ui.components.FilterScreen
 import com.example.ui.components.ImageGridSection
 import com.example.ui.components.NovaHeader
 import com.example.ui.components.PdfReaderScreen
@@ -106,6 +109,7 @@ class MainActivity : ComponentActivity() {
                 val pdfReaderState by viewModel.pdfReaderState.collectAsStateWithLifecycle()
                 val isCameraActive by viewModel.isCameraActive.collectAsStateWithLifecycle()
                 val activeCropItem by viewModel.activeCropItem.collectAsStateWithLifecycle()
+                val activeFilterItem by viewModel.activeFilterItem.collectAsStateWithLifecycle()
 
                 // Splash screen 2-second timer then smooth fade-out and open pending intent if any
                 LaunchedEffect(Unit) {
@@ -132,6 +136,15 @@ class MainActivity : ComponentActivity() {
                                 viewModel.addImages(context, uris)
                                 viewModel.setCameraActive(false)
                             },
+                            onFilterShot = { uri ->
+                                val tempItem = ImageItem(
+                                    id = "temp_${System.currentTimeMillis()}",
+                                    uri = uri,
+                                    name = "Camera Scan",
+                                    sizeBytes = 0
+                                )
+                                viewModel.openFilter(tempItem)
+                            },
                             onCancel = {
                                 viewModel.setCameraActive(false)
                             }
@@ -147,6 +160,19 @@ class MainActivity : ComponentActivity() {
                             },
                             onCancel = {
                                 viewModel.closeCrop()
+                            }
+                        )
+                    }
+
+                    // Filter Screen Overlay
+                    if (activeFilterItem != null) {
+                        FilterScreen(
+                            item = activeFilterItem!!,
+                            onApply = { item, applyToAll ->
+                                viewModel.applyFilter(item, applyToAll)
+                            },
+                            onCancel = {
+                                viewModel.closeFilter()
                             }
                         )
                     }
@@ -292,6 +318,9 @@ fun NovaPdfApp(
                                     onRotateImage = { id -> viewModel.rotateImage(id) },
                                     onCropImage = { id ->
                                         images.find { it.id == id }?.let { viewModel.openCrop(it) }
+                                    },
+                                    onFilterImage = { id ->
+                                        images.find { it.id == id }?.let { viewModel.openFilter(it) }
                                     },
                                     onMoveUp = { idx -> viewModel.moveImageUp(idx) },
                                     onMoveDown = { idx -> viewModel.moveImageDown(idx) },

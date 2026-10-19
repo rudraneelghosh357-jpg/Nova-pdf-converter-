@@ -3,6 +3,7 @@ package com.example.util
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.RectF
@@ -16,6 +17,7 @@ import com.example.model.PageMargin
 import com.example.model.PageOrientation
 import com.example.model.PageSizeOption
 import com.example.model.PdfSettings
+import com.example.model.ScanFilter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
@@ -303,16 +305,29 @@ object PdfGenerator {
             decodedBitmap
         }
 
+        // Apply Filter
+        val finalBitmap = if (imageItem.filterMode != com.example.model.ScanFilter.ORIGINAL || imageItem.brightness != 0f || imageItem.contrast != 1f) {
+            val paint = Paint().apply {
+                colorFilter = FilterHelper.getColorFilter(imageItem.filterMode, imageItem.brightness, imageItem.contrast)
+            }
+            val filteredBitmap = Bitmap.createBitmap(transformedBitmap.width, transformedBitmap.height, Bitmap.Config.ARGB_8888)
+            Canvas(filteredBitmap).drawBitmap(transformedBitmap, 0f, 0f, paint)
+            transformedBitmap.recycle()
+            filteredBitmap
+        } else {
+            transformedBitmap
+        }
+
         // 6. Compress with quality setting to optimize PDF size
         if (quality.compressionQuality < 90) {
             val byteStream = ByteArrayOutputStream()
-            transformedBitmap.compress(Bitmap.CompressFormat.JPEG, quality.compressionQuality, byteStream)
+            finalBitmap.compress(Bitmap.CompressFormat.JPEG, quality.compressionQuality, byteStream)
             val compressedBytes = byteStream.toByteArray()
             val compressedBitmap = BitmapFactory.decodeByteArray(compressedBytes, 0, compressedBytes.size)
-            transformedBitmap.recycle()
+            finalBitmap.recycle()
             return compressedBitmap
         }
 
-        return transformedBitmap
+        return finalBitmap
     }
 }

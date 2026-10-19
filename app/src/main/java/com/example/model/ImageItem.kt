@@ -9,7 +9,10 @@ data class ImageItem(
     val sizeBytes: Long,
     val rotationDegrees: Int = 0,
     val originalWidth: Int = 0,
-    val originalHeight: Int = 0
+    val originalHeight: Int = 0,
+    val filterMode: ScanFilter = ScanFilter.ORIGINAL,
+    val brightness: Float = 0f, // -255 to 255
+    val contrast: Float = 1f    // 0 to 2
 ) {
     fun rotatedClockwise(): ImageItem {
         val nextDegrees = (rotationDegrees + 90) % 360

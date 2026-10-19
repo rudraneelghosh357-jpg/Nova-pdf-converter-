@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.RotateRight
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.ElevatedCard
@@ -53,6 +54,7 @@ fun ImageGridSection(
     images: List<ImageItem>,
     onRotateImage: (String) -> Unit,
     onCropImage: (String) -> Unit,
+    onFilterImage: (String) -> Unit,
     onMoveUp: (Int) -> Unit,
     onMoveDown: (Int) -> Unit,
     onDeleteImage: (String) -> Unit,
@@ -140,6 +142,7 @@ fun ImageGridSection(
                     totalCount = images.size,
                     onRotate = { onRotateImage(item.id) },
                     onCrop = { onCropImage(item.id) },
+                    onFilter = { onFilterImage(item.id) },
                     onMoveUp = { onMoveUp(index) },
                     onMoveDown = { onMoveDown(index) },
                     onDelete = { onDeleteImage(item.id) }
@@ -156,6 +159,7 @@ fun ImageItemCard(
     totalCount: Int,
     onRotate: () -> Unit,
     onCrop: () -> Unit,
+    onFilter: () -> Unit,
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
     onDelete: () -> Unit,
@@ -293,6 +297,20 @@ fun ImageItemCard(
                     Icon(
                         imageVector = Icons.Default.Crop,
                         contentDescription = "Crop image",
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+
+                // Filter
+                FilledTonalIconButton(
+                    onClick = onFilter,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .testTag("filter_button_$pageIndex")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FilterList,
+                        contentDescription = "Filter image",
                         modifier = Modifier.size(16.dp)
                     )
                 }

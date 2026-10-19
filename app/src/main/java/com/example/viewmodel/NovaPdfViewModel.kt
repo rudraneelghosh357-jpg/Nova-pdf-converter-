@@ -56,6 +56,9 @@ class NovaPdfViewModel : ViewModel() {
     private val _activeCropItem = MutableStateFlow<ImageItem?>(null)
     val activeCropItem: StateFlow<ImageItem?> = _activeCropItem.asStateFlow()
 
+    private val _activeFilterItem = MutableStateFlow<ImageItem?>(null)
+    val activeFilterItem: StateFlow<ImageItem?> = _activeFilterItem.asStateFlow()
+
     fun setPendingOpenUri(uri: Uri?) {
         _pendingOpenUri.value = uri
     }
@@ -70,6 +73,25 @@ class NovaPdfViewModel : ViewModel() {
 
     fun closeCrop() {
         _activeCropItem.value = null
+    }
+
+    fun openFilter(item: ImageItem) {
+        _activeFilterItem.value = item
+    }
+
+    fun closeFilter() {
+        _activeFilterItem.value = null
+    }
+
+    fun applyFilter(item: ImageItem, applyToAll: Boolean) {
+        _images.update { list ->
+            if (applyToAll) {
+                list.map { it.copy(filterMode = item.filterMode, brightness = item.brightness, contrast = item.contrast) }
+            } else {
+                list.map { if (it.id == item.id) item else it }
+            }
+        }
+        _activeFilterItem.value = null
     }
 
     fun updateCroppedImage(context: Context, id: String, newUri: Uri) {
