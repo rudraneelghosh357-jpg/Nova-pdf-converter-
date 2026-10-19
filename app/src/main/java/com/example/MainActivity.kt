@@ -87,6 +87,11 @@ import com.example.ui.theme.NovaCyan
 import com.example.viewmodel.NovaPdfViewModel
 import com.example.viewmodel.UiState
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import com.example.ui.components.ScrollDownHint
 
 class MainActivity : ComponentActivity() {
 
@@ -258,7 +263,28 @@ fun NovaPdfApp(
     BackHandler(enabled = uiState is UiState.Success) {
         viewModel.keepImagesForNewConversion()
     }
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    var hintDismissed by remember { mutableStateOf(false) }
 
+    LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
+        if (listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 150) {
+            hintDismissed = true
+        }
+    }
+    LaunchedEffect(images.isEmpty()) {
+        if (images.isEmpty()) hintDismissed = false
+    }
+
+    val showScrollHint by remember {
+        derivedStateOf {
+            images.isNotEmpty() &&
+                uiState !is UiState.Success &&
+                !hintDismissed &&
+                listState.firstVisibleItemIndex == 0 &&
+                listState.canScrollForward
+        }
+    }
     Scaffold(
         modifier = modifier
             .fillMaxSize()
@@ -281,6 +307,7 @@ fun NovaPdfApp(
             contentAlignment = Alignment.TopCenter
         ) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .widthIn(max = 680.dp)
@@ -362,13 +389,22 @@ fun NovaPdfApp(
                         }
                     }
                 }
-
                 item {
                     Spacer(modifier = Modifier.height(24.dp))
                 }
             }
+
+            ScrollDownHint(
+                visible = showScrollHint,
+                onClick = { scope.launch { listState.animateScrollToItem(2) } },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
+            )
         }
-    }
+        
+            }
+        }
 
     // Converting Progress Dialog
     if (uiState is UiState.Converting) {
